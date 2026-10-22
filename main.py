@@ -12,7 +12,7 @@ from seed import seed
 
 def main():
     db = Database(os.path.join(HERE, "smart_campus.db"))
-    seed(db)                      # no-op when data already exists
+    seed(db)
     App(db).mainloop()
 
 

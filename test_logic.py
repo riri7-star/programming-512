@@ -10,8 +10,8 @@ from policies import BookingPolicy, JohannesburgPolicy, register_policy, POLICY_
 from seed import seed
 from services import (AuthService, BookingService, CampusService, ReportService, ResourceService, ValidationError)
 
-FIXED_NOW = datetime(2026, 10, 19, 9, 0)    # a Monday
-FAST = 1000                                  # PBKDF2 iterations for speed in tests only
+FIXED_NOW = datetime(2026, 10, 19, 9, 0)    
+FAST = 1000                              
 
 
 class Base(unittest.TestCase):
@@ -28,6 +28,7 @@ class Base(unittest.TestCase):
         self.reports = ReportService(self.db)
         self.lecturer = self.auth.login("t.mokoena", "Campus#2026!")
         self.admin_jhb = self.auth.login("admin_jhb", "Campus#2026!")
+        self.admin_cnt = self.auth.login("admin_cnt", "Campus#2026!")
         self.operator = self.auth.login("operator", "Campus#2026!")
         self.rid = lambda code: self.db.one("SELECT id FROM resources WHERE code=?", (code,))["id"]
 
@@ -39,6 +40,7 @@ class AuthTests(Base):
     def test_roles_are_subclasses(self):
         self.assertIsInstance(self.lecturer, Lecturer)
         self.assertIsInstance(self.admin_jhb, CampusAdministrator)
+        self.assertIsInstance(self.admin_cnt, CampusAdministrator)
         self.assertIsInstance(self.operator, SystemOperator)
 
     def test_password_not_stored_in_plain_text(self):
@@ -95,7 +97,7 @@ class ResourceTests(Base):
         self.assertEqual(self.db.one("SELECT name, capacity FROM resources WHERE id=?", (rid,))["capacity"], 2)
         self.resources.remove(self.admin_jhb, rid, FIXED_NOW)
         self.assertNotIn("JHB-NEW1", [r.code for r in self.resources.list(cid)])
-        with self.assertRaises(ValidationError):   # retired ID cannot be reused
+        with self.assertRaises(ValidationError):   
             self.resources.add(self.admin_jhb, "JHB-NEW1", "Again", "Projector", 1, cid)
 
     def test_remove_blocked_by_future_booking(self):
@@ -122,9 +124,9 @@ class BookingTests(Base):
         with self.assertRaises(ValidationError):
             self.book("JHB-LAB1", datetime(2026, 10, 20, 8, 30), 60)
         with self.assertRaises(ValidationError):
-            self.book("JHB-LAB1", datetime(2026, 10, 20, 8, 0), 180)   # wraps around existing
-        self.book("JHB-LAB1", datetime(2026, 10, 20, 10, 0), 60)       # back to back is fine
-        self.book("JHB-LAB2", datetime(2026, 10, 20, 9, 0), 60)        # other resource is fine
+            self.book("JHB-LAB1", datetime(2026, 10, 20, 8, 0), 180)   
+        self.book("JHB-LAB1", datetime(2026, 10, 20, 10, 0), 60)     
+        self.book("JHB-LAB2", datetime(2026, 10, 20, 9, 0), 60)      
 
     def test_cancelled_slot_can_be_rebooked(self):
         bid = self.book("JHB-LAB1", datetime(2026, 10, 20, 9, 0))
@@ -150,8 +152,9 @@ class BookingTests(Base):
         start = datetime(2026, 10, 24, 9, 0)   # Saturday
         with self.assertRaises(ValidationError):
             self.book("JHB-PRJ1", start)       # Johannesburg closed
-        self.book("DBN-PRJ1", start)           # Durban open Saturdays
-        self.book("CPT-PRJ1", start)           # Cape Town open daily
+        self.book("DBN-PRJ1", start)             # Durban open Saturdays
+        self.book("CPT-PRJ1", start)             # Cape Town open daily
+        self.book("CNT-PRJ1", start)             # Centurion open/configured
         with self.assertRaises(ValidationError):
             self.book("DBN-SEM1", start + timedelta(hours=2))   # Durban seminar rooms closed Saturday
 
@@ -207,17 +210,21 @@ class BookingTests(Base):
     def test_admin_sees_only_own_campus(self):
         self.book("JHB-LAB1", datetime(2026, 10, 20, 9, 0))
         self.book("DBN-LAB1", datetime(2026, 10, 20, 9, 0))
+        self.book("CNT-LAB1", datetime(2026, 10, 20, 9, 0))
         self.assertEqual(len(self.bookings.for_campus(self.admin_jhb, campus_id=99)), 1)
-        self.assertEqual(len(self.bookings.for_campus(self.operator)), 2)
+        self.assertEqual(len(self.bookings.for_campus(self.operator)), 3)
 
     def test_comparative_report_counts_not_inflated(self):
         self.book("JHB-LAB1", datetime(2026, 10, 20, 9, 0), 120)
         self.book("JHB-LAB2", datetime(2026, 10, 20, 9, 0), 60)
+        self.book("CNT-LAB1", datetime(2026, 10, 20, 9, 0), 90)
         rows = {r["campus"]: r for r in self.reports.comparative(self.operator)}
         self.assertEqual(rows["Johannesburg"]["bookings"], 2)
         self.assertAlmostEqual(rows["Johannesburg"]["hours"], 3.0)
         self.assertEqual(rows["Durban"]["bookings"], 0)
+        self.assertEqual(rows["Centurion"]["bookings"], 1)
         self.assertEqual(rows["Johannesburg"]["resources"], 5)
+        self.assertEqual(rows["Centurion"]["resources"], 5)
 
 
 class ExtensibilityTests(Base):
@@ -248,7 +255,7 @@ class PersistenceTests(Base):
         self.db.close()
         db2 = Database(self.path)
         self.assertEqual(db2.one("SELECT COUNT(*) c FROM bookings")["c"], 1)
-        self.assertFalse(seed(db2, iterations=FAST))   # seeding is idempotent
+        self.assertFalse(seed(db2, iterations=FAST)) 
         db2.close()
         self.db = Database(self.path)
 

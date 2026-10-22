@@ -79,6 +79,18 @@ class JohannesburgPolicy(BookingPolicy):
         return []
 
 
+@register_policy("centurion")
+class CenturionPolicy(BookingPolicy):
+    """Centurion campus policy: standard hours, weekdays only."""
+    max_minutes = 180
+    open_time, close_time = time(7, 0), time(18, 0)
+    open_days = frozenset({0, 1, 2, 3, 4})
+    standard_advance_days = 30
+
+    def extra_violations(self, start, duration_min, resource_type, purpose):
+        return []
+
+
 @register_policy("durban")
 class DurbanPolicy(BookingPolicy):
     """Short session rule: 2 hour cap, Monday to Saturday."""
