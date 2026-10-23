@@ -2,7 +2,7 @@
 
 Programming 512 assignment. Python 3, Tkinter and SQLite.
 
-**GitHub repository:** PASTE_PUBLIC_GITHUB_LINK_HERE
+**GitHub repository:** https://github.com/riri7-star/programming-512
 
 ## What it does
 
