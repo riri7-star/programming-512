@@ -12,7 +12,7 @@ class User:
     permissions = frozenset()
 
     def __init__(self, user_id, username, full_name, campus_id=None):
-        self._id = user_id            # encapsulated: exposed read-only through properties
+        self._id = user_id        
         self._username = username
         self._full_name = full_name
         self._campus_id = campus_id
@@ -48,7 +48,7 @@ class CampusAdministrator(User):
 
     @property
     def can_switch_campus(self):
-        return False  # locked to the home campus
+        return False  
 
 
 class SystemOperator(User):

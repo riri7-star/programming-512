@@ -6,7 +6,7 @@ Adding a new rule set means writing one subclass and decorating it with
 from abc import ABC, abstractmethod
 from datetime import datetime, time, timedelta
 
-POLICY_REGISTRY = {}  # dict: policy key -> policy class
+POLICY_REGISTRY = {}  
 
 
 def register_policy(key):
@@ -23,7 +23,7 @@ class BookingPolicy(ABC):
     max_minutes = 180
     open_time = time(7, 0)
     close_time = time(18, 0)
-    open_days = frozenset({0, 1, 2, 3, 4})  # Monday = 0
+    open_days = frozenset({0, 1, 2, 3, 4}) 
     standard_advance_days = 30
 
     def describe(self):

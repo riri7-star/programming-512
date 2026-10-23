@@ -139,24 +139,24 @@ class BookingTests(Base):
 
     def test_jhb_policy_rules(self):
         with self.assertRaises(ValidationError) as cm:
-            self.book("JHB-SEM1", datetime(2026, 10, 24, 9, 0))    # Saturday
+            self.book("JHB-SEM1", datetime(2026, 10, 24, 9, 0))    
         self.assertIn("day of the week", cm.exception.problems[0])
         with self.assertRaises(ValidationError):
-            self.book("JHB-SEM1", datetime(2026, 10, 20, 9, 0), 240)   # >3h
+            self.book("JHB-SEM1", datetime(2026, 10, 20, 9, 0), 240)  
         with self.assertRaises(ValidationError):
-            self.book("JHB-LAB1", datetime(2026, 10, 20, 15, 0), 90)   # lab ends after 16:00
+            self.book("JHB-LAB1", datetime(2026, 10, 20, 15, 0), 90)   
         with self.assertRaises(ValidationError):
-            self.book("JHB-SEM1", datetime(2026, 10, 20, 17, 30), 60)  # after hours
+            self.book("JHB-SEM1", datetime(2026, 10, 20, 17, 30), 60)  
 
     def test_same_request_different_campus_different_outcome(self):
-        start = datetime(2026, 10, 24, 9, 0)   # Saturday
+        start = datetime(2026, 10, 24, 9, 0) 
         with self.assertRaises(ValidationError):
-            self.book("JHB-PRJ1", start)       # Johannesburg closed
-        self.book("DBN-PRJ1", start)             # Durban open Saturdays
-        self.book("CPT-PRJ1", start)             # Cape Town open daily
-        self.book("CNT-PRJ1", start)             # Centurion open/configured
+            self.book("JHB-PRJ1", start)      
+        self.book("DBN-PRJ1", start)             
+        self.book("CPT-PRJ1", start)             
+        self.book("CNT-PRJ1", start)            
         with self.assertRaises(ValidationError):
-            self.book("DBN-SEM1", start + timedelta(hours=2))   # Durban seminar rooms closed Saturday
+            self.book("DBN-SEM1", start + timedelta(hours=2)) 
 
     def test_durban_two_hour_cap_and_capetown_four(self):
         with self.assertRaises(ValidationError):

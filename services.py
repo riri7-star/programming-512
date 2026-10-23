@@ -10,7 +10,7 @@ from models import (Campus, PermissionDenied, Resource, build_user, RESOURCE_TYP
 from policies import policy_for
 
 TS_FORMAT = "%Y-%m-%d %H:%M"
-PBKDF2_ITERATIONS = 600_000   # OWASP minimum for PBKDF2-HMAC-SHA256
+PBKDF2_ITERATIONS = 600_000   
 
 
 class ValidationError(Exception):
@@ -20,8 +20,6 @@ class ValidationError(Exception):
         self.problems = [problems] if isinstance(problems, str) else list(problems)
         super().__init__("; ".join(self.problems))
 
-
-# --------------------------------------------------------------------------- security
 class PasswordHasher:
     @staticmethod
     def hash(password, salt=None, iterations=PBKDF2_ITERATIONS):
@@ -32,7 +30,7 @@ class PasswordHasher:
     @staticmethod
     def verify(password, salt, expected, iterations):
         _, digest, _ = PasswordHasher.hash(password, salt, iterations)
-        return hmac.compare_digest(digest, expected)  # constant time comparison
+        return hmac.compare_digest(digest, expected)  
 
 
 class AuthService:
@@ -41,7 +39,7 @@ class AuthService:
 
     def __init__(self, db, clock=datetime.now, iterations=PBKDF2_ITERATIONS):
         self.db, self.clock, self.iterations = db, clock, iterations
-        self._failures = defaultdict(list)    # dict of username -> list of failure times
+        self._failures = defaultdict(list)    
 
     def register_lecturer(self, username, full_name, password, campus_id=None):
         problems = []
@@ -77,7 +75,7 @@ class AuthService:
         if len(recent) >= self.MAX_ATTEMPTS:
             raise ValidationError(f"Too many failed attempts. Try again in {self.LOCK_MINUTES} minutes.")
         row = self.db.one("SELECT * FROM users WHERE username = ?", (username,))
-        # Always run one hash so response time does not reveal whether the user exists.
+        
         if row is None:
             PasswordHasher.hash(password, b"\x00" * 16, self.iterations)
             ok = False
@@ -89,8 +87,6 @@ class AuthService:
         self._failures.pop(username.lower(), None)
         return build_user(row)
 
-
-# --------------------------------------------------------------------------- campuses and resources
 class CampusService:
     def __init__(self, db):
         self.db = db
@@ -180,8 +176,6 @@ class ResourceService:
         if actor.role == "admin" and actor.campus_id != campus_id:
             raise PermissionDenied("Administrators may only manage their own campus.")
 
-
-# --------------------------------------------------------------------------- bookings
 class BookingService:
     def __init__(self, db, campuses, clock=datetime.now):
         self.db, self.campuses, self.clock = db, campuses, clock
@@ -191,7 +185,7 @@ class BookingService:
         if purpose not in PURPOSES:
             raise ValidationError("Unknown booking purpose.")
         end = start + timedelta(minutes=duration_min)
-        with self.db.transaction() as conn:          # atomic check-then-insert
+        with self.db.transaction() as conn:         
             res = conn.execute("SELECT * FROM resources WHERE id=?", (resource_id,)).fetchone()
             if res is None or not res["active"]:
                 raise ValidationError("That resource is not available for booking.")
@@ -264,8 +258,6 @@ class BookingService:
         return self.db.one("SELECT 1 FROM bookings WHERE resource_id=? AND status='active' AND start_ts<? AND end_ts>?",
                            (resource_id, end.strftime(TS_FORMAT), start.strftime(TS_FORMAT))) is None
 
-
-# --------------------------------------------------------------------------- reporting
 class ReportService:
     def __init__(self, db):
         self.db = db
